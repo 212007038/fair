@@ -1,3 +1,11 @@
+###############################################################################
+# fair.py
+#
+# A python script that will verify the CP binary readback file FROM the vendor.
+#
+#
+
+
 # region Import region
 
 import os
