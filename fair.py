@@ -20,6 +20,21 @@ from hashlib import sha1
 
 __version__ = '1.0'  # version of script
 
+
+###############################################################################
+# PID Dictionary.
+# Maps PID value to cable string name.
+g_pid = {0x2f:"U-TT", 0x2A:"U-PP12", 0x2b:"U-PP34", 0x20:"U-RE" }
+
+
+###############################################################################
+# Segment defines
+G_BOOT_SEGMENT = 0
+G_DFU_SEGMENT  = 1
+G_MAIN_SEGMENT  = 2
+G_EEPROM_SEGMENT  = 3
+G_OPTION_SEGMENT  = 4
+
 ###############################################################################
 ##### CP #########
 # FLASH MAP defines
@@ -134,6 +149,38 @@ if os.path.isfile(args.option_filename) is False:
 
 # endregion
 
+# region IntelHex Read Region
+###############################################################################
+# Create a IntelHex object with command line given filename.
+hex_file = IntelHex(args.hex_filename)
+
+###############################################################################
+# Sanity check the segments in our GE hex file.
+# Segments call will return a list of tuples contains start and stop address.  They are in lo/hi address order.
+# This should match what we've extracted from the binary.
+segments = hex_file.segments()
+if len(segments) != EXPECTED_SEGMENT_COUNT:
+    print("Number of segments found in {}: {}".format(os.path.basename(args.hex_filename), len(segments)))
+    print("FAIL, expected section count of {} did NOT MATCH actual segment count of {}.".
+          format(EXPECTED_SEGMENT_COUNT, len(segments)))
+
+###############################################################################
+# Show start/end address of segments if requested.
+if args.verbose is True:
+    print("Segment details:")
+    for addresses in segments:
+        print("\tStart address: {0:8X}  End address: {1:8X}".format(addresses[0], addresses[1]))
+
+###############################################################################
+# Read and calculate SHA1 of each section from the GE hex file (expected).
+expected_boot_image_sha1 = calc_sha1(segments[G_BOOT_SEGMENT][0], segments[G_BOOT_SEGMENT][1], hex_file)
+expected_dfu_image_sha1 = calc_sha1(segments[G_DFU_SEGMENT][0], segments[G_DFU_SEGMENT][1], hex_file)
+expected_main_image_sha1 = calc_sha1(segments[G_MAIN_SEGMENT][0], segments[G_MAIN_SEGMENT][1], hex_file)
+expected_ee_image_sha1 = calc_sha1(segments[G_EEPROM_SEGMENT][0], segments[G_EEPROM_SEGMENT][1], hex_file)
+expected_option_image_sha1 = calc_sha1(segments[G_OPTION_SEGMENT][0], segments[G_OPTION_SEGMENT][1], hex_file)
+
+# endregion
+
 # region CP read region
 
 ###############################################################################
@@ -238,34 +285,6 @@ actual_option_image_sha1 = sha1(bytearray(vendor_option_image)).hexdigest()
 
 # endregion
 
-###############################################################################
-# Create a IntelHex object with command line given filename.
-hex_file = IntelHex(args.hex_filename)
-
-###############################################################################
-# Sanity check the segments in our GE hex file.
-# Segments call will return a list of tuples contains start and stop address.  They are in lo/hi address order.
-# This should match what we've extracted from the binary.
-segments = hex_file.segments()
-if len(segments) != EXPECTED_SEGMENT_COUNT:
-    print("Number of segments found in {}: {}".format(os.path.basename(args.hex_filename), len(segments)))
-    print("FAIL, expected section count of {} did NOT MATCH actual segment count of {}.".
-          format(EXPECTED_SEGMENT_COUNT, len(segments)))
-
-###############################################################################
-# Show start/end address of segments if requested.
-if args.verbose is True:
-    print("Segment details:")
-    for addresses in segments:
-        print("\tStart address: {0:8X}  End address: {1:8X}".format(addresses[0], addresses[1]))
-
-###############################################################################
-# Read and calculate SHA1 of each section from the GE hex file (expected).
-expected_boot_image_sha1 = calc_sha1(segments[0][0], segments[0][1], hex_file)
-expected_dfu_image_sha1 = calc_sha1(segments[1][0], segments[1][1], hex_file)
-expected_main_image_sha1 = calc_sha1(segments[2][0], segments[2][1], hex_file)
-expected_ee_image_sha1 = calc_sha1(segments[3][0], segments[3][1], hex_file)
-expected_option_image_sha1 = calc_sha1(segments[4][0], segments[4][1], hex_file)
 
 ###############################################################################
 if args.verbose is True:
