@@ -85,9 +85,10 @@ def calc_sha1(start_address, end_address, hf):
         The sha1 value of the section data.
 
     """
-    byte_count = end_address-start_address
-    image = [hf[start_address + i] for i in xrange(byte_count)]
-    image_sha1 = sha1(bytearray(image)).hexdigest()
+    # Minus 1 on end_address is needed because
+    # tobinarray interprets value as inclusive.
+    image = hf.tobinarray(start_address,end_address-1)
+    image_sha1 = sha1(image).hexdigest()
     return image_sha1
 
 def get_cable_type(hf):
@@ -102,9 +103,9 @@ def get_cable_type(hf):
     """
     segs = hf.segments()  # read all the segments in the hex file
     try:
-        eeprom_data = hf[segs[G_EEPROM_SEGMENT][0]:segs[G_EEPROM_SEGMENT][1]]
-        values = eeprom_data.values()
-        return values
+        d = hf.tobinarray(segs[G_EEPROM_SEGMENT][0],segs[G_EEPROM_SEGMENT][1])
+        #eeprom_data = hf[segs[G_EEPROM_SEGMENT][0]:segs[G_EEPROM_SEGMENT][1]]
+        return d
     except:
         return None
 
