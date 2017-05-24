@@ -90,6 +90,23 @@ def calc_sha1(start_address, end_address, hf):
     image_sha1 = sha1(bytearray(image)).hexdigest()
     return image_sha1
 
+def get_cable_type(hf):
+    """Return the cable type as a string from the given hex file
+
+    Args:
+        hf : hex file array
+
+    Returns:
+        String representation of the cable type.
+
+    """
+    segs = hf.segments()  # read all the segments in the hex file
+    try:
+        eeprom_data = hf[segs[G_EEPROM_SEGMENT][0]:segs[G_EEPROM_SEGMENT][1]]
+        values = eeprom_data.values()
+        return values
+    except:
+        return None
 
 # endregion
 
@@ -153,6 +170,10 @@ if os.path.isfile(args.option_filename) is False:
 ###############################################################################
 # Create a IntelHex object with command line given filename.
 hex_file = IntelHex(args.hex_filename)
+
+
+
+data = get_cable_type(hex_file)
 
 ###############################################################################
 # Sanity check the segments in our GE hex file.
