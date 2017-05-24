@@ -24,7 +24,7 @@ __version__ = '1.0'  # version of script
 ###############################################################################
 # PID Dictionary.
 # Maps PID value to cable string name.
-g_pid = {0x2f:"U-TT", 0x2A:"U-PP12", 0x2b:"U-PP34", 0x20:"U-RE" }
+g_pid = {0x2f:"U-TT", 0x29:"U-PP12", 0x2a:"U-PP34", 0x20:"U-RE" }
 
 
 ###############################################################################
@@ -87,8 +87,7 @@ def calc_sha1(start_address, end_address, hf):
     """
     # Minus 1 on end_address is needed because
     # tobinarray interprets value as inclusive.
-    image = hf.tobinarray(start_address,end_address-1)
-    image_sha1 = sha1(image).hexdigest()
+    image_sha1 = sha1(hf.tobinarray(start_address,end_address-1)).hexdigest()
     return image_sha1
 
 def get_cable_type(hf):
@@ -103,9 +102,10 @@ def get_cable_type(hf):
     """
     segs = hf.segments()  # read all the segments in the hex file
     try:
-        d = hf.tobinarray(segs[G_EEPROM_SEGMENT][0],segs[G_EEPROM_SEGMENT][1])
-        #eeprom_data = hf[segs[G_EEPROM_SEGMENT][0]:segs[G_EEPROM_SEGMENT][1]]
-        return d
+        d = hf.tobinstr(segs[G_EEPROM_SEGMENT][0], segs[G_EEPROM_SEGMENT][1])
+        pid = unpack_from("<H",d)[0]
+        cable_type = g_pid[pid]
+        return cable_type
     except:
         return None
 
@@ -172,9 +172,8 @@ if os.path.isfile(args.option_filename) is False:
 # Create a IntelHex object with command line given filename.
 hex_file = IntelHex(args.hex_filename)
 
-
-
 data = get_cable_type(hex_file)
+print("Cable type of "+data+" detected in "+args.hex_filename)
 
 ###############################################################################
 # Sanity check the segments in our GE hex file.
