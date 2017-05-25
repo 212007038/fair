@@ -1,7 +1,9 @@
 ###############################################################################
 # fair.py
 #
-# A python script that will verify the CP binary readback file FROM the vendor.
+# A python script that will verify the CP binary readback files FROM the vendor
+# against the GE hex file.  The GE hex file was provided to the vendor to program
+# the part.
 #
 # There's 5 memory regions in a CP binary (as built by GE).
 # In order of address range:
@@ -13,7 +15,11 @@
 #
 # At the moment, the vendor sends 3 binary files back to GE for verification.
 # The files are read back from a vendor programmed part using a GE supplied
-# Intel Hex file.
+# Intel Hex file.  Note the binary files are read from a single part.
+#
+# The vendor supplies a single binary for section 1,2 and 3.
+# The entire eprom for section 4.  We are only using a portion of this.
+# A small option setion for section 5.
 #
 
 
@@ -183,8 +189,8 @@ if os.path.isfile(args.option_filename) is False:
 # Create a IntelHex object with command line given filename.
 hex_file = IntelHex(args.hex_filename)
 
-data = get_cable_type(hex_file)
-print("Cable type of "+data+" detected in "+args.hex_filename)
+cable_type_string = get_cable_type(hex_file)
+print("Cable type of "+cable_type_string+" detected in "+args.hex_filename)
 
 ###############################################################################
 # Sanity check the segments in our GE hex file.
