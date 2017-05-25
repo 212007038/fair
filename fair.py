@@ -3,6 +3,17 @@
 #
 # A python script that will verify the CP binary readback file FROM the vendor.
 #
+# There's 5 memory regions in a CP binary (as built by GE).
+# In order of address range:
+#   1.  boot
+#   2.  DFU
+#   3.  main
+#   4.  eeprom
+#   5.  options
+#
+# At the moment, the vendor sends 3 binary files back to GE for verification.
+# The files are read back from a vendor programmed part using a GE supplied
+# Intel Hex file.
 #
 
 
@@ -286,6 +297,7 @@ actual_main_image_sha1 = sha1(bytearray(vendor_main_image)).hexdigest()
 with open(args.ee_filename, "rb") as f:
     binary_data = f.read()
 
+# The entire 4k ee block is present in this binary.
 # Read the 2nd of 16 256-byte blocks.
 # That's where our stuff is.
 # Grab the entire image and calc a sha1...
