@@ -85,7 +85,8 @@ AP_CHECKSUM_POINTER_OFFSET = 0x00E4
 AP_VERSION_POINTER_OFFSET = 0x00E0
 
 # The number of segments we expect in our hex file.
-EXPECTED_SEGMENT_COUNT = 5
+EXPECTED_CP_SEGMENT_COUNT = 5
+EXPECTED_AP_SEGMENT_COUNT = 1
 
 # endregion
 
@@ -133,14 +134,18 @@ def get_cable_type(hf):
 ###############################################################################
 
 parser = argparse.ArgumentParser(description="Process an exported LeCroy CSV file (from spreadsheet view)")
-parser.add_argument('-i', dest='binary_filename',
-                    help='Name of binary file to read and test', required=True)
-parser.add_argument('-x', dest='hex_filename',
-                    help='Name of GE hex file to read and compare against', required=True)
+parser.add_argument('-c', dest='cp_binary_filename',
+                    help='Name of communication binary file to read and test, contains boot, dfu and main for the USB CPU', required=True)
+parser.add_argument('-x', dest='cp_hex_filename',
+                    help='Name of GE USB hex file to read and compare against', required=True)
 parser.add_argument('-e', dest='ee_filename',
                     help='Name of vendor binary file containing the readback for EE content.', required=True)
 parser.add_argument('-o', dest='option_filename',
                     help='Name of vendor binary file containing the readback for option content.', required=True)
+parser.add_argument('-a', dest='ap_binary_filename',
+                    help='Name of acquisition binary file to read and test.', required=True)
+parser.add_argument('-h', dest='ap_hex_filename',
+                    help='Name of GE acquisition hex file to read and compare against', required=True)
 parser.add_argument('--version', action='version', help='Print version.',
                     version='%(prog)s Version {version}'.format(version=__version__))
 parser.add_argument('-v', dest='verbose', default=False, action='store_true',
@@ -151,16 +156,16 @@ args = parser.parse_args()
 
 ###############################################################################
 # Test for existence of the binary file.
-if os.path.isfile(args.binary_filename) is False:
-    print('ERROR, ' + args.binary_filename + ' does not exist')
+if os.path.isfile(args.cp_binary_filename) is False:
+    print('ERROR, ' + args.cp_binary_filename + ' does not exist')
     print('\n\n')
     parser.print_help()
     exit(-1)
 
 ###############################################################################
-# Test for existence of the hex file.
-if os.path.isfile(args.hex_filename) is False:
-    print('ERROR, ' + args.hex_filename + ' does not exist')
+# Test for existence of the cp hex file.
+if os.path.isfile(args.cp_hex_filename) is False:
+    print('ERROR, ' + args.cp_hex_filename + ' does not exist')
     print('\n\n')
     parser.print_help()
     exit(-1)
@@ -182,40 +187,46 @@ if os.path.isfile(args.option_filename) is False:
     exit(-1)
 
 
+
+
 # endregion
 
-# region IntelHex Read Region
+
+# region CP Test region
+
+
+# region CP IntelHex Read Region
 ###############################################################################
 # Create a IntelHex object with command line given filename.
-hex_file = IntelHex(args.hex_filename)
+cp_hex_file = IntelHex(args.cp_hex_filename)
 
-cable_type_string = get_cable_type(hex_file)
-print("Cable type of "+cable_type_string+" detected in "+args.hex_filename)
+cable_type_string = get_cable_type(cp_hex_file)
+print("Cable type of "+cable_type_string+" detected in "+args.cp_hex_filename)
 
 ###############################################################################
 # Sanity check the segments in our GE hex file.
 # Segments call will return a list of tuples contains start and stop address.  They are in lo/hi address order.
 # This should match what we've extracted from the binary.
-segments = hex_file.segments()
-if len(segments) != EXPECTED_SEGMENT_COUNT:
-    print("Number of segments found in {}: {}".format(os.path.basename(args.hex_filename), len(segments)))
+segments = cp_hex_file.segments()
+if len(segments) != EXPECTED_CP_SEGMENT_COUNT:
+    print("Number of segments found in {}: {}".format(os.path.basename(args.cp_hex_filename), len(segments)))
     print("FAIL, expected section count of {} did NOT MATCH actual segment count of {}.".
-          format(EXPECTED_SEGMENT_COUNT, len(segments)))
+          format(EXPECTED_CP_SEGMENT_COUNT, len(segments)))
 
 ###############################################################################
 # Show start/end address of segments if requested.
 if args.verbose is True:
-    print("Segment details:")
+    print("CP Segment details:")
     for addresses in segments:
         print("\tStart address: {0:8X}  End address: {1:8X}".format(addresses[0], addresses[1]))
 
 ###############################################################################
 # Read and calculate SHA1 of each section from the GE hex file (expected).
-expected_boot_image_sha1 = calc_sha1(segments[G_BOOT_SEGMENT][0], segments[G_BOOT_SEGMENT][1], hex_file)
-expected_dfu_image_sha1 = calc_sha1(segments[G_DFU_SEGMENT][0], segments[G_DFU_SEGMENT][1], hex_file)
-expected_main_image_sha1 = calc_sha1(segments[G_MAIN_SEGMENT][0], segments[G_MAIN_SEGMENT][1], hex_file)
-expected_ee_image_sha1 = calc_sha1(segments[G_EEPROM_SEGMENT][0], segments[G_EEPROM_SEGMENT][1], hex_file)
-expected_option_image_sha1 = calc_sha1(segments[G_OPTION_SEGMENT][0], segments[G_OPTION_SEGMENT][1], hex_file)
+expected_boot_image_sha1 = calc_sha1(segments[G_BOOT_SEGMENT][0], segments[G_BOOT_SEGMENT][1], cp_hex_file)
+expected_dfu_image_sha1 = calc_sha1(segments[G_DFU_SEGMENT][0], segments[G_DFU_SEGMENT][1], cp_hex_file)
+expected_main_image_sha1 = calc_sha1(segments[G_MAIN_SEGMENT][0], segments[G_MAIN_SEGMENT][1], cp_hex_file)
+expected_ee_image_sha1 = calc_sha1(segments[G_EEPROM_SEGMENT][0], segments[G_EEPROM_SEGMENT][1], cp_hex_file)
+expected_option_image_sha1 = calc_sha1(segments[G_OPTION_SEGMENT][0], segments[G_OPTION_SEGMENT][1], cp_hex_file)
 
 # endregion
 
@@ -223,7 +234,7 @@ expected_option_image_sha1 = calc_sha1(segments[G_OPTION_SEGMENT][0], segments[G
 
 ###############################################################################
 # Open and read entire binary into variable
-with open(args.binary_filename, "rb") as f:
+with open(args.cp_binary_filename, "rb") as f:
     binary_data = f.read()
 
 
@@ -324,6 +335,7 @@ actual_option_image_sha1 = sha1(bytearray(vendor_option_image)).hexdigest()
 
 # endregion
 
+# region CP Test
 
 ###############################################################################
 if args.verbose is True:
@@ -334,7 +346,7 @@ if args.verbose is True:
     print("Actual option sha1 : {}, expected option sha1 {}".format(actual_option_image_sha1, expected_option_image_sha1))
 
 ###############################################################################
-# Compare actual against expected...
+# Compare CP actual against expected...
 if actual_boot_image_sha1 != expected_boot_image_sha1:
     print("FAIL, actual boot image DOES NOT MATCH expected boot image")
 else:
@@ -361,3 +373,62 @@ else:
     print("PASS, option section matches")
 
 exit(0)
+
+# endregion
+
+# endregion
+
+# region AP Test region
+
+# Did the user want to test the AP device?
+if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
+
+    ###############################################################################
+    # Test for existence of the ap binary file.
+    if os.path.isfile(args.ap_binary_filename) is False:
+        print('ERROR, ' + args.ap_hex_filename + ' does not exist')
+        print('\n\n')
+        parser.print_help()
+        exit(-1)
+
+    ###############################################################################
+    # Test for existence of the ap hex file.
+    if os.path.isfile(args.ap_hex_filename) is False:
+        print('ERROR, ' + args.ap_hex_filename + ' does not exist')
+        print('\n\n')
+        parser.print_help()
+        exit(-1)
+
+    # region AP IntelHex Read region
+    ###############################################################################
+    # Create a IntelHex object with command line given filename.
+    ap_hex_file = IntelHex(args.ap_hex_filename)
+
+    ###############################################################################
+    # Sanity check the segments in our GE hex file.
+    # Segments call will return a list of tuples contains start and stop address.  They are in lo/hi address order.
+    # This should match what we've extracted from the binary.
+    segments = ap_hex_file.segments()
+    if len(segments) != EXPECTED_AP_SEGMENT_COUNT:
+        print("Number of segments found in {}: {}".format(os.path.basename(args.cp_hex_filename), len(segments)))
+        print("FAIL, expected section count of {} did NOT MATCH actual segment count of {}.".
+              format(EXPECTED_AP_SEGMENT_COUNT, len(segments)))
+
+    ###############################################################################
+    # Show start/end address of segments if requested.
+    if args.verbose is True:
+        print("AP Segment details:")
+        for addresses in segments:
+            print("\tStart address: {0:8X}  End address: {1:8X}".format(addresses[0], addresses[1]))
+
+    ###############################################################################
+    # Read and calculate SHA1 of each section from the GE hex file (expected).
+    expected_ap_image_sha1 = calc_sha1(segments[0][0], segments[0][1], ap_hex_file)
+
+
+    # endregion
+
+    # region AP Binary Read region
+    # endregion
+
+# endregion
