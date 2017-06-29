@@ -372,8 +372,6 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
     else:
         print("PASS, option section matches")
 
-    exit(0)
-
     # endregion
 
 # endregion
@@ -445,8 +443,8 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
     ap_crc = unpack_from("<L", ap_binary_data[offset:])[0]
 
     if args.verbose is True:
-        print("Boot byte size: {}  Boot Version: {}.{}.{}.{}    Boot image CRC: 0x{:08x}".format(
-            actual_boot_bytesize,
+        print("AP byte size: {}  AP Version: {}.{}.{}.{}    AP image CRC: 0x{:08x}".format(
+            actual_ap_bytesize,
             (ap_version & 0xff000000) >> 24,
             (ap_version & 0x00ff0000) >> 16,
             (ap_version & 0x0000ff00) >> 8,
@@ -454,12 +452,26 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
             ap_crc))
 
     # Grab the entire image and calc a sha1...
-    vendor_boot_image = unpack_from(">{0}B".format(str(actual_boot_bytesize)),
-                                    ap_binary_data[CP_BOOTLOADER_START_ADDRESS:])
-    actual_boot_image_sha1 = sha1(bytearray(vendor_boot_image)).hexdigest()
+    vendor_ap_image = unpack_from(">{0}B".format(str(actual_ap_bytesize)),
+                                    ap_binary_data[AP_MAIN_APP_STARTING_ADDR:])
+    actual_ap_image_sha1 = sha1(bytearray(vendor_ap_image)).hexdigest()
 
 
+
+    ###############################################################################
+    if args.verbose is True:
+        print("Actual ap sha1 : {}, expected ap sha1 {}".format(actual_ap_image_sha1, expected_ap_image_sha1))
+
+    ###############################################################################
+    # Compare CP actual against expected...
+    if actual_ap_image_sha1 != expected_ap_image_sha1:
+        print("FAIL, actual AP image DOES NOT MATCH expected AP image")
+    else:
+        print("PASS, AP matches")
 
     # endregion
 
 # endregion
+
+exit(0)
+
