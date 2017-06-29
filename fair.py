@@ -135,17 +135,17 @@ def get_cable_type(hf):
 
 parser = argparse.ArgumentParser(description="Process an exported LeCroy CSV file (from spreadsheet view)")
 parser.add_argument('-c', dest='cp_binary_filename',
-                    help='Name of communication binary file to read and test, contains boot, dfu and main for the USB CPU', required=True)
+                    help='Name of communication binary file to read and test, contains boot, dfu and main for the USB CPU')
 parser.add_argument('-x', dest='cp_hex_filename',
-                    help='Name of GE USB hex file to read and compare against', required=True)
+                    help='Name of GE USB hex file to read and compare against')
 parser.add_argument('-e', dest='ee_filename',
-                    help='Name of vendor binary file containing the readback for EE content.', required=True)
+                    help='Name of vendor binary file containing the readback for EE content.')
 parser.add_argument('-o', dest='option_filename',
-                    help='Name of vendor binary file containing the readback for option content.', required=True)
+                    help='Name of vendor binary file containing the readback for option content.')
 parser.add_argument('-a', dest='ap_binary_filename',
-                    help='Name of acquisition binary file to read and test.', required=True)
-parser.add_argument('-h', dest='ap_hex_filename',
-                    help='Name of GE acquisition hex file to read and compare against', required=True)
+                    help='Name of acquisition binary file to read and test.')
+parser.add_argument('-p', dest='ap_hex_filename',
+                    help='Name of GE acquisition hex file to read and compare against')
 parser.add_argument('--version', action='version', help='Print version.',
                     version='%(prog)s Version {version}'.format(version=__version__))
 parser.add_argument('-v', dest='verbose', default=False, action='store_true',
@@ -154,227 +154,227 @@ parser.add_argument('-v', dest='verbose', default=False, action='store_true',
 # Parse the command line arguments
 args = parser.parse_args()
 
-###############################################################################
-# Test for existence of the binary file.
-if os.path.isfile(args.cp_binary_filename) is False:
-    print('ERROR, ' + args.cp_binary_filename + ' does not exist')
-    print('\n\n')
-    parser.print_help()
-    exit(-1)
-
-###############################################################################
-# Test for existence of the cp hex file.
-if os.path.isfile(args.cp_hex_filename) is False:
-    print('ERROR, ' + args.cp_hex_filename + ' does not exist')
-    print('\n\n')
-    parser.print_help()
-    exit(-1)
-
-###############################################################################
-# Test for existence of the ee file.
-if os.path.isfile(args.ee_filename) is False:
-    print('ERROR, ' + args.ee_filename + ' does not exist')
-    print('\n\n')
-    parser.print_help()
-    exit(-1)
-
-###############################################################################
-# Test for existence of the option file.
-if os.path.isfile(args.option_filename) is False:
-    print('ERROR, ' + args.option_filename + ' does not exist')
-    print('\n\n')
-    parser.print_help()
-    exit(-1)
-
-
-
-
 # endregion
 
 
 # region CP Test region
-
-
-# region CP IntelHex Read Region
 ###############################################################################
-# Create a IntelHex object with command line given filename.
-cp_hex_file = IntelHex(args.cp_hex_filename)
+# Did user want to test CP?
+if args.cp_binary_filename is not None and args.cp_hex_filename is not None and \
+   args.ee_filename is not None and args.option_filename is not None:
 
-cable_type_string = get_cable_type(cp_hex_file)
-print("Cable type of "+cable_type_string+" detected in "+args.cp_hex_filename)
+    ###############################################################################
+    # Test for existence of the binary file.
+    if os.path.isfile(args.cp_binary_filename) is False:
+        print('ERROR, ' + args.cp_binary_filename + ' does not exist')
+        print('\n\n')
+        parser.print_help()
+        exit(-1)
 
-###############################################################################
-# Sanity check the segments in our GE hex file.
-# Segments call will return a list of tuples contains start and stop address.  They are in lo/hi address order.
-# This should match what we've extracted from the binary.
-segments = cp_hex_file.segments()
-if len(segments) != EXPECTED_CP_SEGMENT_COUNT:
-    print("Number of segments found in {}: {}".format(os.path.basename(args.cp_hex_filename), len(segments)))
-    print("FAIL, expected section count of {} did NOT MATCH actual segment count of {}.".
-          format(EXPECTED_CP_SEGMENT_COUNT, len(segments)))
+    ###############################################################################
+    # Test for existence of the cp hex file.
+    if os.path.isfile(args.cp_hex_filename) is False:
+        print('ERROR, ' + args.cp_hex_filename + ' does not exist')
+        print('\n\n')
+        parser.print_help()
+        exit(-1)
 
-###############################################################################
-# Show start/end address of segments if requested.
-if args.verbose is True:
-    print("CP Segment details:")
-    for addresses in segments:
-        print("\tStart address: {0:8X}  End address: {1:8X}".format(addresses[0], addresses[1]))
+    ###############################################################################
+    # Test for existence of the ee file.
+    if os.path.isfile(args.ee_filename) is False:
+        print('ERROR, ' + args.ee_filename + ' does not exist')
+        print('\n\n')
+        parser.print_help()
+        exit(-1)
 
-###############################################################################
-# Read and calculate SHA1 of each section from the GE hex file (expected).
-expected_boot_image_sha1 = calc_sha1(segments[G_BOOT_SEGMENT][0], segments[G_BOOT_SEGMENT][1], cp_hex_file)
-expected_dfu_image_sha1 = calc_sha1(segments[G_DFU_SEGMENT][0], segments[G_DFU_SEGMENT][1], cp_hex_file)
-expected_main_image_sha1 = calc_sha1(segments[G_MAIN_SEGMENT][0], segments[G_MAIN_SEGMENT][1], cp_hex_file)
-expected_ee_image_sha1 = calc_sha1(segments[G_EEPROM_SEGMENT][0], segments[G_EEPROM_SEGMENT][1], cp_hex_file)
-expected_option_image_sha1 = calc_sha1(segments[G_OPTION_SEGMENT][0], segments[G_OPTION_SEGMENT][1], cp_hex_file)
+    ###############################################################################
+    # Test for existence of the option file.
+    if os.path.isfile(args.option_filename) is False:
+        print('ERROR, ' + args.option_filename + ' does not exist')
+        print('\n\n')
+        parser.print_help()
+        exit(-1)
 
-# endregion
+    # region CP IntelHex Read Region
+    ###############################################################################
+    # Create a IntelHex object with command line given filename.
+    cp_hex_file = IntelHex(args.cp_hex_filename)
 
-# region CP read region
+    cable_type_string = get_cable_type(cp_hex_file)
+    print("Cable type of "+cable_type_string+" detected in "+args.cp_hex_filename)
 
-###############################################################################
-# Open and read entire binary into variable
-with open(args.cp_binary_filename, "rb") as f:
-    binary_data = f.read()
+    ###############################################################################
+    # Sanity check the segments in our GE hex file.
+    # Segments call will return a list of tuples contains start and stop address.  They are in lo/hi address order.
+    # This should match what we've extracted from the binary.
+    segments = cp_hex_file.segments()
+    if len(segments) != EXPECTED_CP_SEGMENT_COUNT:
+        print("Number of segments found in {}: {}".format(os.path.basename(args.cp_hex_filename), len(segments)))
+        print("FAIL, expected section count of {} did NOT MATCH actual segment count of {}.".
+              format(EXPECTED_CP_SEGMENT_COUNT, len(segments)))
+
+    ###############################################################################
+    # Show start/end address of segments if requested.
+    if args.verbose is True:
+        print("CP Segment details:")
+        for addresses in segments:
+            print("\tStart address: {0:8X}  End address: {1:8X}".format(addresses[0], addresses[1]))
+
+    ###############################################################################
+    # Read and calculate SHA1 of each section from the GE hex file (expected).
+    expected_boot_image_sha1 = calc_sha1(segments[G_BOOT_SEGMENT][0], segments[G_BOOT_SEGMENT][1], cp_hex_file)
+    expected_dfu_image_sha1 = calc_sha1(segments[G_DFU_SEGMENT][0], segments[G_DFU_SEGMENT][1], cp_hex_file)
+    expected_main_image_sha1 = calc_sha1(segments[G_MAIN_SEGMENT][0], segments[G_MAIN_SEGMENT][1], cp_hex_file)
+    expected_ee_image_sha1 = calc_sha1(segments[G_EEPROM_SEGMENT][0], segments[G_EEPROM_SEGMENT][1], cp_hex_file)
+    expected_option_image_sha1 = calc_sha1(segments[G_OPTION_SEGMENT][0], segments[G_OPTION_SEGMENT][1], cp_hex_file)
+
+    # endregion
+
+    # region CP read region
+
+    ###############################################################################
+    # Open and read entire binary into variable
+    with open(args.cp_binary_filename, "rb") as f:
+        binary_data = f.read()
 
 
-###############################################################################
-# Test boot...
-offset = CP_BOOTLOADER_START_ADDRESS + CP_VERSION_POINTER_OFFSET
-(boot_version_offset, actual_boot_bytesize) = unpack_from("<LL", binary_data[offset:])
-actual_boot_bytesize += 4   # adjust for crc at end
-boot_version = unpack_from("<L", binary_data[boot_version_offset:])[0]
-offset = CP_BOOTLOADER_START_ADDRESS + actual_boot_bytesize-4
-boot_crc = unpack_from("<L", binary_data[offset:])[0]
+    ###############################################################################
+    # Test boot...
+    offset = CP_BOOTLOADER_START_ADDRESS + CP_VERSION_POINTER_OFFSET
+    (boot_version_offset, actual_boot_bytesize) = unpack_from("<LL", binary_data[offset:])
+    actual_boot_bytesize += 4   # adjust for crc at end
+    boot_version = unpack_from("<L", binary_data[boot_version_offset:])[0]
+    offset = CP_BOOTLOADER_START_ADDRESS + actual_boot_bytesize-4
+    boot_crc = unpack_from("<L", binary_data[offset:])[0]
 
-if args.verbose is True:
-    print("Boot byte size: {}  Boot Version: {}.{}.{}.{}    Boot image CRC: 0x{:08x}".format(
-        actual_boot_bytesize,
-        (boot_version & 0xff000000) >> 24,
-        (boot_version & 0x00ff0000) >> 16,
-        (boot_version & 0x0000ff00) >> 8,
-        (boot_version & 0x000000ff),
-        boot_crc))
+    if args.verbose is True:
+        print("Boot byte size: {}  Boot Version: {}.{}.{}.{}    Boot image CRC: 0x{:08x}".format(
+            actual_boot_bytesize,
+            (boot_version & 0xff000000) >> 24,
+            (boot_version & 0x00ff0000) >> 16,
+            (boot_version & 0x0000ff00) >> 8,
+            (boot_version & 0x000000ff),
+            boot_crc))
 
-# Grab the entire image and calc a sha1...
-vendor_boot_image = unpack_from(">{0}B".format(str(actual_boot_bytesize)), binary_data[CP_BOOTLOADER_START_ADDRESS:])
-actual_boot_image_sha1 = sha1(bytearray(vendor_boot_image)).hexdigest()
+    # Grab the entire image and calc a sha1...
+    vendor_boot_image = unpack_from(">{0}B".format(str(actual_boot_bytesize)), binary_data[CP_BOOTLOADER_START_ADDRESS:])
+    actual_boot_image_sha1 = sha1(bytearray(vendor_boot_image)).hexdigest()
 
-###############################################################################
-# Test DFU...
-offset = CP_DFU1_START_ADDRESS + CP_VERSION_POINTER_OFFSET
-(dfu_version_offset, actual_dfu_bytesize) = unpack_from("<LL", binary_data[offset:])
-actual_dfu_bytesize += 4   # adjust for crc at end
-offset = CP_DFU1_START_ADDRESS + dfu_version_offset
-dfu_version = unpack_from("<L", binary_data[offset:])[0]
-offset = CP_DFU1_START_ADDRESS + actual_dfu_bytesize-4
-dfu_crc = unpack_from("<L", binary_data[offset:])[0]
+    ###############################################################################
+    # Test DFU...
+    offset = CP_DFU1_START_ADDRESS + CP_VERSION_POINTER_OFFSET
+    (dfu_version_offset, actual_dfu_bytesize) = unpack_from("<LL", binary_data[offset:])
+    actual_dfu_bytesize += 4   # adjust for crc at end
+    offset = CP_DFU1_START_ADDRESS + dfu_version_offset
+    dfu_version = unpack_from("<L", binary_data[offset:])[0]
+    offset = CP_DFU1_START_ADDRESS + actual_dfu_bytesize-4
+    dfu_crc = unpack_from("<L", binary_data[offset:])[0]
 
-if args.verbose is True:
-    print("DFU byte size: {}  DFU Version: {}.{}.{}.{}    DFU image CRC: 0x{:08x}".format(
-        actual_dfu_bytesize,
-        (dfu_version & 0xff000000) >> 24,
-        (dfu_version & 0x00ff0000) >> 16,
-        (dfu_version & 0x0000ff00) >> 8,
-        (dfu_version & 0x000000ff),
-        dfu_crc))
+    if args.verbose is True:
+        print("DFU byte size: {}  DFU Version: {}.{}.{}.{}    DFU image CRC: 0x{:08x}".format(
+            actual_dfu_bytesize,
+            (dfu_version & 0xff000000) >> 24,
+            (dfu_version & 0x00ff0000) >> 16,
+            (dfu_version & 0x0000ff00) >> 8,
+            (dfu_version & 0x000000ff),
+            dfu_crc))
 
-# Grab the entire image and calc a sha1...
-vendor_dfu_image = unpack_from(">{0}B".format(str(actual_dfu_bytesize)), binary_data[CP_DFU1_START_ADDRESS:])
-actual_dfu_image_sha1 = sha1(bytearray(vendor_dfu_image)).hexdigest()
+    # Grab the entire image and calc a sha1...
+    vendor_dfu_image = unpack_from(">{0}B".format(str(actual_dfu_bytesize)), binary_data[CP_DFU1_START_ADDRESS:])
+    actual_dfu_image_sha1 = sha1(bytearray(vendor_dfu_image)).hexdigest()
 
-###############################################################################
-# Test main...
-offset = CP_MAIN_APP_START_ADDRESS + CP_VERSION_POINTER_OFFSET
-(main_version_offset, actual_main_bytesize) = unpack_from("<LL", binary_data[offset:])
-actual_main_bytesize += 4   # adjust for crc at end
-offset = CP_MAIN_APP_START_ADDRESS + main_version_offset
-main_version = unpack_from("<L", binary_data[offset:])[0]
-offset = CP_MAIN_APP_START_ADDRESS + actual_main_bytesize-4
-main_crc = unpack_from("<L", binary_data[offset:])[0]
+    ###############################################################################
+    # Test main...
+    offset = CP_MAIN_APP_START_ADDRESS + CP_VERSION_POINTER_OFFSET
+    (main_version_offset, actual_main_bytesize) = unpack_from("<LL", binary_data[offset:])
+    actual_main_bytesize += 4   # adjust for crc at end
+    offset = CP_MAIN_APP_START_ADDRESS + main_version_offset
+    main_version = unpack_from("<L", binary_data[offset:])[0]
+    offset = CP_MAIN_APP_START_ADDRESS + actual_main_bytesize-4
+    main_crc = unpack_from("<L", binary_data[offset:])[0]
 
-if args.verbose is True:
-    print("Main byte size: {}  Main Version: {}.{}.{}.{}    MAIN image CRC: 0x{:08x}".format(
-        actual_main_bytesize,
-        (main_version & 0xff000000) >> 24,
-        (main_version & 0x00ff0000) >> 16,
-        (main_version & 0x0000ff00) >> 8,
-        (main_version & 0x000000ff),
-        main_crc))
+    if args.verbose is True:
+        print("Main byte size: {}  Main Version: {}.{}.{}.{}    MAIN image CRC: 0x{:08x}".format(
+            actual_main_bytesize,
+            (main_version & 0xff000000) >> 24,
+            (main_version & 0x00ff0000) >> 16,
+            (main_version & 0x0000ff00) >> 8,
+            (main_version & 0x000000ff),
+            main_crc))
 
-# Grab the entire image and calc a sha1...
-vendor_main_image = unpack_from(">{0}B".format(str(actual_main_bytesize)), binary_data[CP_MAIN_APP_START_ADDRESS:])
-actual_main_image_sha1 = sha1(bytearray(vendor_main_image)).hexdigest()
+    # Grab the entire image and calc a sha1...
+    vendor_main_image = unpack_from(">{0}B".format(str(actual_main_bytesize)), binary_data[CP_MAIN_APP_START_ADDRESS:])
+    actual_main_image_sha1 = sha1(bytearray(vendor_main_image)).hexdigest()
 
-# endregion
+    # endregion
 
-# region EE read region
-###############################################################################
-# Open and read entire binary into variable
-with open(args.ee_filename, "rb") as f:
-    binary_data = f.read()
+    # region EE read region
+    ###############################################################################
+    # Open and read entire binary into variable
+    with open(args.ee_filename, "rb") as f:
+        binary_data = f.read()
 
-# The entire 4k ee block is present in this binary.
-# Read the 2nd of 16 256-byte blocks.
-# That's where our stuff is.
-# Grab the entire image and calc a sha1...
-vendor_ee_image = unpack_from(">256B", binary_data[256:])
-actual_ee_image_sha1 = sha1(bytearray(vendor_ee_image)).hexdigest()
+    # The entire 4k ee block is present in this binary.
+    # Read the 2nd of 16 256-byte blocks.
+    # That's where our stuff is.
+    # Grab the entire image and calc a sha1...
+    vendor_ee_image = unpack_from(">256B", binary_data[256:])
+    actual_ee_image_sha1 = sha1(bytearray(vendor_ee_image)).hexdigest()
 
-# endregion
+    # endregion
 
-# region Option read region
-###############################################################################
-# Open and read entire binary into variable
-with open(args.option_filename, "rb") as f:
-    binary_data = f.read()
+    # region Option read region
+    ###############################################################################
+    # Open and read entire binary into variable
+    with open(args.option_filename, "rb") as f:
+        binary_data = f.read()
 
-# Read the first 16-bytes.
-vendor_option_image = unpack_from(">16B", binary_data[0:])
-actual_option_image_sha1 = sha1(bytearray(vendor_option_image)).hexdigest()
+    # Read the first 16-bytes.
+    vendor_option_image = unpack_from(">16B", binary_data[0:])
+    actual_option_image_sha1 = sha1(bytearray(vendor_option_image)).hexdigest()
 
-# endregion
+    # endregion
 
-# region CP Test
+    # region CP Test
 
-###############################################################################
-if args.verbose is True:
-    print("Actual boot sha1 : {}, expected boot sha1 {}".format(actual_boot_image_sha1, expected_boot_image_sha1))
-    print("Actual DFU sha1 : {}, expected DFU sha1 {}".format(actual_dfu_image_sha1, expected_dfu_image_sha1))
-    print("Actual main sha1 : {}, expected main sha1 {}".format(actual_main_image_sha1, expected_main_image_sha1))
-    print("Actual ee sha1 : {}, expected ee sha1 {}".format(actual_ee_image_sha1, expected_ee_image_sha1))
-    print("Actual option sha1 : {}, expected option sha1 {}".format(actual_option_image_sha1, expected_option_image_sha1))
+    ###############################################################################
+    if args.verbose is True:
+        print("Actual boot sha1 : {}, expected boot sha1 {}".format(actual_boot_image_sha1, expected_boot_image_sha1))
+        print("Actual DFU sha1 : {}, expected DFU sha1 {}".format(actual_dfu_image_sha1, expected_dfu_image_sha1))
+        print("Actual main sha1 : {}, expected main sha1 {}".format(actual_main_image_sha1, expected_main_image_sha1))
+        print("Actual ee sha1 : {}, expected ee sha1 {}".format(actual_ee_image_sha1, expected_ee_image_sha1))
+        print("Actual option sha1 : {}, expected option sha1 {}".format(actual_option_image_sha1, expected_option_image_sha1))
 
-###############################################################################
-# Compare CP actual against expected...
-if actual_boot_image_sha1 != expected_boot_image_sha1:
-    print("FAIL, actual boot image DOES NOT MATCH expected boot image")
-else:
-    print("PASS, boot matches")
+    ###############################################################################
+    # Compare CP actual against expected...
+    if actual_boot_image_sha1 != expected_boot_image_sha1:
+        print("FAIL, actual boot image DOES NOT MATCH expected boot image")
+    else:
+        print("PASS, boot matches")
 
-if actual_dfu_image_sha1 != expected_dfu_image_sha1:
-    print("FAIL, actual DFU image DOES NOT MATCH expected boot image")
-else:
-    print("PASS, DFU matches")
+    if actual_dfu_image_sha1 != expected_dfu_image_sha1:
+        print("FAIL, actual DFU image DOES NOT MATCH expected boot image")
+    else:
+        print("PASS, DFU matches")
 
-if actual_main_image_sha1 != expected_main_image_sha1:
-    print("FAIL, actual main image DOES NOT MATCH expected boot image")
-else:
-    print("PASS, main matches")
+    if actual_main_image_sha1 != expected_main_image_sha1:
+        print("FAIL, actual main image DOES NOT MATCH expected boot image")
+    else:
+        print("PASS, main matches")
 
-if actual_ee_image_sha1 != expected_ee_image_sha1:
-    print("FAIL, actual EE image DOES NOT MATCH expected boot image")
-else:
-    print("PASS, EE matches")
+    if actual_ee_image_sha1 != expected_ee_image_sha1:
+        print("FAIL, actual EE image DOES NOT MATCH expected boot image")
+    else:
+        print("PASS, EE matches")
 
-if actual_option_image_sha1 != expected_option_image_sha1:
-    print("FAIL, actual option image DOES NOT MATCH expected boot image")
-else:
-    print("PASS, option section matches")
+    if actual_option_image_sha1 != expected_option_image_sha1:
+        print("FAIL, actual option image DOES NOT MATCH expected boot image")
+    else:
+        print("PASS, option section matches")
 
-exit(0)
+    exit(0)
 
-# endregion
+    # endregion
 
 # endregion
 
@@ -401,7 +401,7 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
 
     # region AP IntelHex Read region
     ###############################################################################
-    # Create a IntelHex object with command line given filename.
+    # Create an IntelHex object with command line given filename.
     ap_hex_file = IntelHex(args.ap_hex_filename)
 
     ###############################################################################
@@ -423,12 +423,43 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
 
     ###############################################################################
     # Read and calculate SHA1 of each section from the GE hex file (expected).
+    # At the moment, there's only 1 segement for the AP.
     expected_ap_image_sha1 = calc_sha1(segments[0][0], segments[0][1], ap_hex_file)
 
 
     # endregion
 
     # region AP Binary Read region
+    ###############################################################################
+    # Open and read entire AP binary into variable
+    with open(args.ap_binary_filename, "rb") as f:
+        ap_binary_data = f.read()
+
+    ###############################################################################
+    # Find the end of the AP section by reading and inspecting values at known offsets...
+    offset = AP_MAIN_APP_STARTING_ADDR + AP_VERSION_POINTER_OFFSET
+    (ap_version_offset, actual_ap_bytesize) = unpack_from("<LL", ap_binary_data[offset:])
+    actual_ap_bytesize += 4  # adjust for crc at end
+    ap_version = unpack_from("<L", ap_binary_data[ap_version_offset:])[0]
+    offset = AP_MAIN_APP_STARTING_ADDR + actual_ap_bytesize - 4
+    ap_crc = unpack_from("<L", ap_binary_data[offset:])[0]
+
+    if args.verbose is True:
+        print("Boot byte size: {}  Boot Version: {}.{}.{}.{}    Boot image CRC: 0x{:08x}".format(
+            actual_boot_bytesize,
+            (ap_version & 0xff000000) >> 24,
+            (ap_version & 0x00ff0000) >> 16,
+            (ap_version & 0x0000ff00) >> 8,
+            (ap_version & 0x000000ff),
+            ap_crc))
+
+    # Grab the entire image and calc a sha1...
+    vendor_boot_image = unpack_from(">{0}B".format(str(actual_boot_bytesize)),
+                                    ap_binary_data[CP_BOOTLOADER_START_ADDRESS:])
+    actual_boot_image_sha1 = sha1(bytearray(vendor_boot_image)).hexdigest()
+
+
+
     # endregion
 
 # endregion
