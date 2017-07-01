@@ -1,7 +1,7 @@
 ###############################################################################
 # fair.py
 #
-# A python script that will verify the CP binary readback files FROM the vendor
+# A python script that will verify the CP/A: binary readback files FROM the vendor
 # against the GE hex file.  The GE hex file was provided to the vendor to program
 # the part.
 #
@@ -13,13 +13,16 @@
 #   4.  eeprom
 #   5.  options
 #
-# At the moment, the vendor sends 3 binary files back to GE for verification.
+# There's 1 memory regions in a AP binary (as built by GE).
+#   1.  main
+#
+# At the moment, the vendor sends 4 binary files back to GE for verification.
 # The files are read back from a vendor programmed part using a GE supplied
-# Intel Hex file.  Note the binary files are read from a single part.
+# Intel Hex file(s).  Note the binary files are read from a single part.
 #
 # The vendor supplies a single binary for section 1,2 and 3.
 # The entire eprom for section 4.  We are only using a portion of this.
-# A small option setion for section 5.
+# A small option section for section 5.
 #
 
 
@@ -156,7 +159,6 @@ args = parser.parse_args()
 
 # endregion
 
-
 # region CP Test region
 ###############################################################################
 # Did user want to test CP?
@@ -201,6 +203,7 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
     cp_hex_file = IntelHex(args.cp_hex_filename)
 
     cable_type_string = get_cable_type(cp_hex_file)
+    print("*******************************************************************************************************")
     print("Cable type of "+cable_type_string+" detected in "+args.cp_hex_filename)
 
     ###############################################################################
@@ -215,6 +218,7 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
 
     ###############################################################################
     # Show start/end address of segments if requested.
+    print("\n*******************************************************************************************************")
     if args.verbose is True:
         print("CP Segment details:")
         for addresses in segments:
@@ -248,7 +252,7 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
     boot_crc = unpack_from("<L", binary_data[offset:])[0]
 
     if args.verbose is True:
-        print("Boot byte size: {}  Boot Version: {}.{}.{}.{}    Boot image CRC: 0x{:08x}".format(
+        print("\tBoot byte size: {}  Boot Version: {}.{}.{}.{}    Boot image CRC: 0x{:08x}".format(
             actual_boot_bytesize,
             (boot_version & 0xff000000) >> 24,
             (boot_version & 0x00ff0000) >> 16,
@@ -271,7 +275,7 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
     dfu_crc = unpack_from("<L", binary_data[offset:])[0]
 
     if args.verbose is True:
-        print("DFU byte size: {}  DFU Version: {}.{}.{}.{}    DFU image CRC: 0x{:08x}".format(
+        print("\tDFU byte size: {}  DFU Version: {}.{}.{}.{}    DFU image CRC: 0x{:08x}".format(
             actual_dfu_bytesize,
             (dfu_version & 0xff000000) >> 24,
             (dfu_version & 0x00ff0000) >> 16,
@@ -294,7 +298,7 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
     main_crc = unpack_from("<L", binary_data[offset:])[0]
 
     if args.verbose is True:
-        print("Main byte size: {}  Main Version: {}.{}.{}.{}    MAIN image CRC: 0x{:08x}".format(
+        print("\tMain byte size: {}  Main Version: {}.{}.{}.{}    MAIN image CRC: 0x{:08x}".format(
             actual_main_bytesize,
             (main_version & 0xff000000) >> 24,
             (main_version & 0x00ff0000) >> 16,
@@ -348,29 +352,29 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
     ###############################################################################
     # Compare CP actual against expected...
     if actual_boot_image_sha1 != expected_boot_image_sha1:
-        print("FAIL, actual boot image DOES NOT MATCH expected boot image")
+        print("*** FAIL ***, actual boot image DOES NOT MATCH expected boot image")
     else:
-        print("PASS, boot matches")
+        print("--- PASS ---, boot matches")
 
     if actual_dfu_image_sha1 != expected_dfu_image_sha1:
-        print("FAIL, actual DFU image DOES NOT MATCH expected boot image")
+        print("*** FAIL ***, actual DFU image DOES NOT MATCH expected boot image")
     else:
-        print("PASS, DFU matches")
+        print("--- PASS ---, DFU matches")
 
     if actual_main_image_sha1 != expected_main_image_sha1:
-        print("FAIL, actual main image DOES NOT MATCH expected boot image")
+        print("*** FAIL ***, actual main image DOES NOT MATCH expected boot image")
     else:
-        print("PASS, main matches")
+        print("--- PASS ---, main matches")
 
     if actual_ee_image_sha1 != expected_ee_image_sha1:
-        print("FAIL, actual EE image DOES NOT MATCH expected boot image")
+        print("*** FAIL ***, actual EE image DOES NOT MATCH expected boot image")
     else:
-        print("PASS, EE matches")
+        print("--- PASS ---, EE matches")
 
     if actual_option_image_sha1 != expected_option_image_sha1:
-        print("FAIL, actual option image DOES NOT MATCH expected boot image")
+        print("*** FAIL ***, actual option image DOES NOT MATCH expected boot image")
     else:
-        print("PASS, option section matches")
+        print("--- PASS ---, option section matches")
 
     # endregion
 
@@ -380,6 +384,8 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
 
 # Did the user want to test the AP device?
 if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
+
+    print("\n*******************************************************************************************************")
 
     ###############################################################################
     # Test for existence of the ap binary file.
@@ -443,7 +449,7 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
     ap_crc = unpack_from("<L", ap_binary_data[offset:])[0]
 
     if args.verbose is True:
-        print("AP byte size: {}  AP Version: {}.{}.{}.{}    AP image CRC: 0x{:08x}".format(
+        print("\tAP byte size: {}  AP Version: {}.{}.{}.{}    AP image CRC: 0x{:08x}".format(
             actual_ap_bytesize,
             (ap_version & 0xff000000) >> 24,
             (ap_version & 0x00ff0000) >> 16,
@@ -465,9 +471,9 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
     ###############################################################################
     # Compare CP actual against expected...
     if actual_ap_image_sha1 != expected_ap_image_sha1:
-        print("FAIL, actual AP image DOES NOT MATCH expected AP image")
+        print("*** FAIL ***, actual AP image DOES NOT MATCH expected AP image")
     else:
-        print("PASS, AP matches")
+        print("--- PASS ---, AP matches")
 
     # endregion
 
