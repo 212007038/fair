@@ -13,18 +13,17 @@
 #   4.  eeprom
 #   5.  options
 #
-# There's 1 memory regions in a AP binary (as built by GE).
+# There's 1 memory region in a AP binary (as built by GE).
 #   1.  main
 #
-# At the moment, the vendor sends 4 binary files back to GE for verification.
-# The files are read back from a vendor programmed part using a GE supplied
-# Intel Hex file(s).  Note the binary files are read from a single part.
+# At the moment, the vendor sends 5 binary files back to GE for verification.
+# The files are read back from a vendor programmed part.
+# Note the binary files are read from a single part.
 #
 # The vendor supplies a single binary for section 1,2 and 3.
 # The entire eprom for section 4.  We are only using a portion of this.
 # A small option section for section 5.
 #
-
 
 # region Import region
 
@@ -44,16 +43,16 @@ __version__ = '1.0'  # version of script
 ###############################################################################
 # PID Dictionary.
 # Maps PID value to cable string name.
-g_pid = {0x2f:"U-TT", 0x29:"U-PP12", 0x2a:"U-PP34", 0x20:"U-RE" }
+g_pid = {0x2f: "U-TT", 0x29: "U-PP12", 0x2a: "U-PP34", 0x20: "U-RE"}
 
 
 ###############################################################################
 # Segment defines
 G_BOOT_SEGMENT = 0
-G_DFU_SEGMENT  = 1
-G_MAIN_SEGMENT  = 2
-G_EEPROM_SEGMENT  = 3
-G_OPTION_SEGMENT  = 4
+G_DFU_SEGMENT = 1
+G_MAIN_SEGMENT = 2
+G_EEPROM_SEGMENT = 3
+G_OPTION_SEGMENT = 4
 
 ###############################################################################
 ##### CP #########
@@ -63,10 +62,10 @@ CP_DFU1_SIZE = 0x6000                                                      # DFU
 CP_DFU2_SIZE = CP_DFU1_SIZE                                                   # DFU2 region size(24K)
 CP_MAIN_APP_SIZE = 0x10000                                                 # MainApp region size(64K)
 CP_BOOTLOADER_START_ADDRESS = 0x00000000
-CP_DFU1_START_ADDRESS = (CP_BOOTLOADER_START_ADDRESS + CP_FLASH_BOOTLOADER_SIZE) # 0x08002000
-CP_DFU2_START_ADDRESS = (CP_DFU1_START_ADDRESS + CP_DFU1_SIZE)                   # 0x08008000
-CP_MAIN_APP_START_ADDRESS = (CP_DFU2_START_ADDRESS + CP_DFU2_SIZE)               # 0x0800e000
-CP_MAIN_APP_END_ADDRESS = (CP_MAIN_APP_START_ADDRESS + CP_MAIN_APP_SIZE)         # 0x0801e000
+CP_DFU1_START_ADDRESS = (CP_BOOTLOADER_START_ADDRESS + CP_FLASH_BOOTLOADER_SIZE)  # 0x08002000
+CP_DFU2_START_ADDRESS = (CP_DFU1_START_ADDRESS + CP_DFU1_SIZE)                    # 0x08008000
+CP_MAIN_APP_START_ADDRESS = (CP_DFU2_START_ADDRESS + CP_DFU2_SIZE)                # 0x0800e000
+CP_MAIN_APP_END_ADDRESS = (CP_MAIN_APP_START_ADDRESS + CP_MAIN_APP_SIZE)          # 0x0801e000
 
 
 # Offset to the version with reference to start address of the corresponding image
@@ -94,6 +93,8 @@ EXPECTED_AP_SEGMENT_COUNT = 1
 # endregion
 
 # region Function region
+
+
 def calc_sha1(start_address, end_address, hf):
     """Return the sha1 of the given address range from the given list.
 
@@ -108,8 +109,9 @@ def calc_sha1(start_address, end_address, hf):
     """
     # Minus 1 on end_address is needed because
     # tobinarray interprets value as inclusive.
-    image_sha1 = sha1(hf.tobinarray(start_address,end_address-1)).hexdigest()
+    image_sha1 = sha1(hf.tobinarray(start_address, end_address-1)).hexdigest()
     return image_sha1
+
 
 def get_cable_type(hf):
     """Return the cable type as a string from the given hex file
@@ -124,7 +126,7 @@ def get_cable_type(hf):
     segs = hf.segments()  # read all the segments in the hex file
     try:
         d = hf.tobinstr(segs[G_EEPROM_SEGMENT][0], segs[G_EEPROM_SEGMENT][1])
-        pid = unpack_from("<H",d)[0]
+        pid = unpack_from("<H", d)[0]
         cable_type = g_pid[pid]
         return cable_type
     except:
@@ -240,7 +242,6 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
     # Open and read entire binary into variable
     with open(args.cp_binary_filename, "rb") as f:
         binary_data = f.read()
-
 
     ###############################################################################
     # Test boot...
@@ -427,9 +428,8 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
 
     ###############################################################################
     # Read and calculate SHA1 of each section from the GE hex file (expected).
-    # At the moment, there's only 1 segement for the AP.
+    # At the moment, there's only 1 segment for the AP.
     expected_ap_image_sha1 = calc_sha1(segments[0][0], segments[0][1], ap_hex_file)
-
 
     # endregion
 
@@ -461,8 +461,6 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
     vendor_ap_image = unpack_from(">{0}B".format(str(actual_ap_bytesize)),
                                     ap_binary_data[AP_MAIN_APP_STARTING_ADDR:])
     actual_ap_image_sha1 = sha1(bytearray(vendor_ap_image)).hexdigest()
-
-
 
     ###############################################################################
     if args.verbose is True:
