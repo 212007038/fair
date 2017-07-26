@@ -1,7 +1,7 @@
 ###############################################################################
 # fair.py
 #
-# A python script that will verify the CP/A: binary readback files FROM the vendor
+# A python script that will verify the CP/AP: binary read-back files FROM the vendor
 # against the GE hex file.  The GE hex file was provided to the vendor to program
 # the part.
 #
@@ -140,17 +140,17 @@ def get_cable_type(hf):
 
 parser = argparse.ArgumentParser(description="Process an exported LeCroy CSV file (from spreadsheet view)")
 parser.add_argument('-c', dest='cp_binary_filename',
-                    help='Name of communication binary file to read and test, contains boot, dfu and main for the USB CPU')
+                    help='Name of vendor binary file containing the read-back of the boot, dfu and main for the USB CPU')
 parser.add_argument('-x', dest='cp_hex_filename',
-                    help='Name of GE USB hex file to read and compare against')
+                    help='Name of GE USB CPU hex file to read and compare against')
 parser.add_argument('-e', dest='ee_filename',
-                    help='Name of vendor binary file containing the readback for EE content.')
+                    help='Name of vendor binary file containing the read-back of the EE content.')
 parser.add_argument('-o', dest='option_filename',
-                    help='Name of vendor binary file containing the readback for option content.')
+                    help='Name of vendor binary file containing the read-back of the option content.')
 parser.add_argument('-a', dest='ap_binary_filename',
-                    help='Name of acquisition binary file to read and test.')
+                    help='Name of vendor binary binary containing the read-back of the acquisition processor content.')
 parser.add_argument('-p', dest='ap_hex_filename',
-                    help='Name of GE acquisition hex file to read and compare against')
+                    help='Name of GE acquisition CPU hex file to read and compare against')
 parser.add_argument('--version', action='version', help='Print version.',
                     version='%(prog)s Version {version}'.format(version=__version__))
 parser.add_argument('-v', dest='verbose', default=False, action='store_true',
@@ -220,9 +220,9 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
 
     ###############################################################################
     # Show start/end address of segments if requested.
-    print("\n*******************************************************************************************************")
     if args.verbose is True:
-        print("CP Segment details:")
+        print("\n*******************************************************************************************************")
+        print("USB Segment details from GE file {} :".format(args.cp_hex_filename))
         for addresses in segments:
             print("\tStart address: {0:8X}  End address: {1:8X}".format(addresses[0], addresses[1]))
 
@@ -253,6 +253,8 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
     boot_crc = unpack_from("<L", binary_data[offset:])[0]
 
     if args.verbose is True:
+        print("\n*******************************************************************************************************")
+        print("Section information read from vendor file {}: ".format(args.cp_binary_filename))
         print("\tBoot byte size: {}  Boot Version: {}.{}.{}.{}    Boot image CRC: 0x{:08x}".format(
             actual_boot_bytesize,
             (boot_version & 0xff000000) >> 24,
@@ -344,6 +346,8 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
 
     ###############################################################################
     if args.verbose is True:
+        print("\n*******************************************************************************************************")
+        print("Calculated SHA1s from vendor (actual) versus GE (expected):")
         print("Actual boot sha1 : {}, expected boot sha1 {}".format(actual_boot_image_sha1, expected_boot_image_sha1))
         print("Actual DFU sha1 : {}, expected DFU sha1 {}".format(actual_dfu_image_sha1, expected_dfu_image_sha1))
         print("Actual main sha1 : {}, expected main sha1 {}".format(actual_main_image_sha1, expected_main_image_sha1))
@@ -351,7 +355,9 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
         print("Actual option sha1 : {}, expected option sha1 {}".format(actual_option_image_sha1, expected_option_image_sha1))
 
     ###############################################################################
-    # Compare CP actual against expected...
+    # Compare USB actual against expected...
+    print("\n*******************************************************************************************************")
+    print("Comparison results for USB CPU: ")
     if actual_boot_image_sha1 != expected_boot_image_sha1:
         print("*** FAIL ***, actual boot image DOES NOT MATCH expected boot image")
     else:
@@ -386,9 +392,7 @@ if args.cp_binary_filename is not None and args.cp_hex_filename is not None and 
 # Did the user want to test the AP device?
 if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
 
-    print("\n*******************************************************************************************************")
-
-    ###############################################################################
+     ###############################################################################
     # Test for existence of the ap binary file.
     if os.path.isfile(args.ap_binary_filename) is False:
         print('ERROR, ' + args.ap_hex_filename + ' does not exist')
@@ -422,7 +426,7 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
     ###############################################################################
     # Show start/end address of segments if requested.
     if args.verbose is True:
-        print("AP Segment details:")
+        print("AP Segment details from GE file {}:".format(args.ap_hex_filename))
         for addresses in segments:
             print("\tStart address: {0:8X}  End address: {1:8X}".format(addresses[0], addresses[1]))
 
@@ -464,10 +468,14 @@ if args.ap_binary_filename is not None and args.ap_hex_filename is not None:
 
     ###############################################################################
     if args.verbose is True:
+        print("\n*******************************************************************************************************")
+        print("Calculated SHA1s from vendor (actual) versus GE (expected):")
         print("Actual ap sha1 : {}, expected ap sha1 {}".format(actual_ap_image_sha1, expected_ap_image_sha1))
 
     ###############################################################################
-    # Compare CP actual against expected...
+    # Compare AP actual against expected...
+    print("\n*******************************************************************************************************")
+    print("Comparison results for AP CPU: ")
     if actual_ap_image_sha1 != expected_ap_image_sha1:
         print("*** FAIL ***, actual AP image DOES NOT MATCH expected AP image")
     else:
